@@ -110,7 +110,7 @@
 <body>
   <div class="topbar">
     <div>
-      <h1>KLABOR</h1>
+      <h1>БЕЛОТ</h1>
       <div class="goal">до <span id="goalTop">701</span> · база 162</div>
     </div>
     <div style="display:flex; gap:8px">
@@ -256,7 +256,7 @@
     names:{us:"Мы",them:"Они"},
     cfg:{goal:701, base:162, pen:100, thr:3},
     events:[],            // {t:'deal'|'beit'|'capot', us,them, team}
-    round:{us:"",them:"",cu:0,ct:0,edited:null},
+    round:{us:"",them:"",bonus:0,edited:null},
     winAck:false
   });
 
@@ -299,11 +299,11 @@
 
     // entry
     $("inUs").value=S.round.us; $("inThem").value=S.round.them;
-    $("badgeUs").textContent=fmtBadge(S.round.cu);
-    $("badgeThem").textContent=fmtBadge(S.round.ct);
-    const su=(+S.round.us||0)+S.round.cu, st=(+S.round.them||0)+S.round.ct;
-    $("sumHint").textContent="сумма "+(su+st)+" / "+(S.cfg.base+S.round.cu+S.round.ct);
-    $("btnSave").disabled = !(S.round.us!=="" || S.round.them!=="" || S.round.cu || S.round.ct);
+    $("badgeUs").textContent=fmtBadge(S.round.bonus);
+    $("badgeThem").textContent="";
+    const su=(+S.round.us||0), st=(+S.round.them||0);
+    $("sumHint").textContent="сумма "+(su+st)+" / "+(S.cfg.base+S.round.bonus);
+    $("btnSave").disabled = !(S.round.us!=="" || S.round.them!=="" || S.round.bonus);
 
     // log
     const list=$("logList");
@@ -348,28 +348,29 @@
     if(edited==="us"){ const v=+S.round.us||0; S.round.them=String(Math.max(0,base-v)); }
     else{ const v=+S.round.them||0; S.round.us=String(Math.max(0,base-v)); }
   }
-  function resetRound(){ S.round={us:"",them:"",cu:0,ct:0,edited:null}; }
+  function resetRound(){ S.round={us:"",them:"",bonus:0,edited:null}; }
 
   function commitDeal(){
-    const us=(+S.round.us||0)+S.round.cu;
-    const them=(+S.round.them||0)+S.round.ct;
+    const us=(+S.round.us||0);
+    const them=(+S.round.them||0);
     if(us===0 && them===0) return;
     S.events.push({t:"deal",us,them});
     resetRound(); render();
   }
-  function commitBeit(team){ S.events.push({t:"beit",team,bonus:(S.round.cu||0)+(S.round.ct||0)}); resetRound(); render(); flash(team==="us"?"them":"us"); }
-  function commitCapot(team){ S.events.push({t:"capot",team,bonus:(S.round.cu||0)+(S.round.ct||0)}); resetRound(); render(); flash(team==="us"?"them":"us"); }
+  function commitBeit(team){ S.events.push({t:"beit",team,bonus:(S.round.bonus||0)}); resetRound(); render(); flash(team==="us"?"them":"us"); }
+  function commitCapot(team){ S.events.push({t:"capot",team,bonus:(S.round.bonus||0)}); resetRound(); render(); flash(team==="us"?"them":"us"); }
   function undo(){ if(S.events.length){ S.events.pop(); S.winAck=false; render(); } }
 
   // --- events ---
-  $("inUs").addEventListener("input",e=>{ S.round.us=e.target.value; S.round.edited="us"; if(e.target.value!=="") autofill("us"); render(); });
-  $("inThem").addEventListener("input",e=>{ S.round.them=e.target.value; S.round.edited="them"; if(e.target.value!=="") autofill("them"); render(); });
+  $("inUs").addEventListener("input",e=>{ S.round.us=e.target.value; S.round.edited="us"; S.round.bonus=0; if(e.target.value!=="") autofill("us"); render(); });
+  $("inThem").addEventListener("input",e=>{ S.round.them=e.target.value; S.round.edited="them"; S.round.bonus=0; if(e.target.value!=="") autofill("them"); render(); });
   document.querySelectorAll(".chip").forEach(c=>c.addEventListener("click",()=>{
     const t=c.dataset.combo, v=+c.dataset.v;
-    if(t==="us") S.round.cu+=v; else S.round.ct+=v; render();
+    if(t==="us") S.round.us=String((+S.round.us||0)+v); else S.round.them=String((+S.round.them||0)+v);
+    S.round.bonus+=v; render();
   }));
-  $("badgeUs").addEventListener("click",()=>{S.round.cu=0;render();});
-  $("badgeThem").addEventListener("click",()=>{S.round.ct=0;render();});
+  $("badgeUs").addEventListener("click",()=>{ resetRound(); render(); });
+  $("badgeThem").addEventListener("click",()=>{ resetRound(); render(); });
   document.querySelectorAll("[data-beit]").forEach(b=>b.addEventListener("click",()=>commitBeit(b.dataset.beit)));
   document.querySelectorAll("[data-capot]").forEach(b=>b.addEventListener("click",()=>commitCapot(b.dataset.capot)));
   $("btnSave").addEventListener("click",commitDeal);
