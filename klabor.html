@@ -110,7 +110,7 @@
 <body>
   <div class="topbar">
     <div>
-      <h1>КЛАБОР</h1>
+      <h1>БЕЛОТ</h1>
       <div class="goal">до <span id="goalTop">701</span> · база 162</div>
     </div>
     <div style="display:flex; gap:8px">
@@ -224,18 +224,30 @@
   const KEY="belot_game_v1";
   const $=id=>document.getElementById(id);
 
-  // --- storage: Telegram CloudStorage → window.storage → память ---
+  // --- storage: CloudStorage только в реальном мини-аппе → иначе localStorage → память ---
   const tg = (window.Telegram && window.Telegram.WebApp) || null;
-  const cs = tg && tg.CloudStorage;
+  // ВАЖНО: telegram-web-app.js определяет tg в ЛЮБОМ браузере. Настоящий мини-апп
+  // отличаем по непустому initData — иначе CloudStorage зависает без ответа.
+  const inTelegram = !!(tg && tg.initData && tg.initData.length);
+  const cs = inTelegram ? tg.CloudStorage : null;
   function _parse(s){ try{ return JSON.parse(s); }catch(e){ return null; } }
+  function _ls(){ try{ if(window.localStorage){ const v=localStorage.getItem(KEY); return v?_parse(v):null; } }catch(e){} return null; }
   const store={
     save(o){ const s=JSON.stringify(o);
-      if(cs&&cs.setItem){ try{ cs.setItem(KEY,s,function(){}); }catch(e){} return; }
-      try{ if(window.storage&&window.storage.set) window.storage.set(KEY,s,false); }catch(e){}
+      try{
+        if(cs&&cs.setItem){ cs.setItem(KEY,s,function(){}); return; }
+        if(window.localStorage) localStorage.setItem(KEY,s);
+      }catch(e){}
     },
     load(){ return new Promise(function(res){
-      if(cs&&cs.getItem){ cs.getItem(KEY,function(err,val){ res(val?_parse(val):null); }); return; }
-      (async function(){ try{ if(window.storage&&window.storage.get){ const r=await window.storage.get(KEY,false); return res(r&&r.value?_parse(r.value):null); } }catch(e){} res(null); })();
+      if(cs&&cs.getItem){
+        let done=false;
+        const t=setTimeout(function(){ if(!done){ done=true; res(_ls()); } },2500); // не зависать
+        try{ cs.getItem(KEY,function(err,val){ if(done)return; done=true; clearTimeout(t); res(val?_parse(val):_ls()); }); }
+        catch(e){ if(!done){ done=true; clearTimeout(t); res(_ls()); } }
+        return;
+      }
+      res(_ls());
     }); }
   };
 
@@ -422,17 +434,24 @@
   }
 
   // init
+  S = fresh();                 // синхронно — хендлеры и render никогда не видят null
+  render();
   (async function(){
-    const saved=await store.load();
-    S = saved && saved.events ? Object.assign(fresh(), saved) : fresh();
-    if(!S.cfg) S.cfg=fresh().cfg; if(!S.round) resetRound();
-    render();
-    if(tg){
-      tg.ready(); tg.expand();
-      try{ tg.setHeaderColor("#173d2e"); tg.setBackgroundColor("#173d2e"); }catch(e){}
-      tg.MainButton.setText("Отправить счёт в чат");
-      tg.MainButton.onClick(shareScore);
-      tg.MainButton.show();
+    const saved = await store.load();
+    if(saved && saved.events){
+      S = Object.assign(fresh(), saved);
+      if(!S.cfg) S.cfg = fresh().cfg;
+      if(!S.round) resetRound();
+      render();
+    }
+    if(inTelegram){
+      try{
+        tg.ready(); tg.expand();
+        try{ tg.setHeaderColor("#173d2e"); tg.setBackgroundColor("#173d2e"); }catch(e){}
+        tg.MainButton.setText("Отправить счёт в чат");
+        tg.MainButton.onClick(shareScore);
+        tg.MainButton.show();
+      }catch(e){}
     }
   })();
 })();
