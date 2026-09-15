@@ -267,11 +267,11 @@
       if(e.t==="deal"){ t.us+=e.us; t.them+=e.them; }
       else if(e.t==="beit"){
         const win=e.team==="us"?"them":"us";
-        t[win]+=S.cfg.base; bc[e.team]++;
+        t[win]+=S.cfg.base+(e.bonus||0); bc[e.team]++;
         if(bc[e.team]>=S.cfg.thr) t[e.team]-=S.cfg.pen;
       } else if(e.t==="capot"){
         const win=e.team==="us"?"them":"us";
-        t[e.team]-=S.cfg.pen; t[win]+=S.cfg.base;
+        t[e.team]-=S.cfg.pen; t[win]+=S.cfg.base+(e.bonus||0);
       }
     }
     return t;
@@ -302,7 +302,7 @@
     $("badgeUs").textContent=fmtBadge(S.round.cu);
     $("badgeThem").textContent=fmtBadge(S.round.ct);
     const su=(+S.round.us||0)+S.round.cu, st=(+S.round.them||0)+S.round.ct;
-    $("sumHint").textContent="сумма "+(su+st)+" / "+S.cfg.base;
+    $("sumHint").textContent="сумма "+(su+st)+" / "+(S.cfg.base+S.round.cu+S.round.ct);
     $("btnSave").disabled = !(S.round.us!=="" || S.round.them!=="" || S.round.cu || S.round.ct);
 
     // log
@@ -315,12 +315,12 @@
         let pu="", pt="", tag="";
         if(e.t==="deal"){ pu="+"+e.us; pt="+"+e.them; }
         else if(e.t==="beit"){
-          const win=e.team==="us"?"them":"us";
-          if(win==="us"){pu="+"+S.cfg.base; pt="бейт";}else{pt="+"+S.cfg.base; pu="бейт";}
+          const win=e.team==="us"?"them":"us"; const gain=S.cfg.base+(e.bonus||0);
+          if(win==="us"){pu="+"+gain; pt="бейт";}else{pt="+"+gain; pu="бейт";}
           tag='<span class="tag beit">БЕЙТ '+(e.team==="us"?S.names.us:S.names.them)+'</span>';
         } else if(e.t==="capot"){
-          const win=e.team==="us"?"them":"us";
-          if(win==="us"){pu="+"+S.cfg.base; pt="−"+S.cfg.pen;}else{pt="+"+S.cfg.base; pu="−"+S.cfg.pen;}
+          const win=e.team==="us"?"them":"us"; const gain=S.cfg.base+(e.bonus||0);
+          if(win==="us"){pu="+"+gain; pt="−"+S.cfg.pen;}else{pt="+"+gain; pu="−"+S.cfg.pen;}
           tag='<span class="tag capot">БЕЗ ВЗЯТИЯ '+(e.team==="us"?S.names.us:S.names.them)+'</span>';
         }
         html+='<div class="row"><span class="n">'+idx+'</span><span class="pu">'+pu+'</span><span class="pt">'+pt+'</span>'+(tag||'<span></span>')+'</div>';
@@ -357,8 +357,8 @@
     S.events.push({t:"deal",us,them});
     resetRound(); render();
   }
-  function commitBeit(team){ S.events.push({t:"beit",team}); resetRound(); render(); flash(team==="us"?"them":"us"); }
-  function commitCapot(team){ S.events.push({t:"capot",team}); resetRound(); render(); flash(team==="us"?"them":"us"); }
+  function commitBeit(team){ S.events.push({t:"beit",team,bonus:(S.round.cu||0)+(S.round.ct||0)}); resetRound(); render(); flash(team==="us"?"them":"us"); }
+  function commitCapot(team){ S.events.push({t:"capot",team,bonus:(S.round.cu||0)+(S.round.ct||0)}); resetRound(); render(); flash(team==="us"?"them":"us"); }
   function undo(){ if(S.events.length){ S.events.pop(); S.winAck=false; render(); } }
 
   // --- events ---
