@@ -297,12 +297,12 @@
     $("barUs").style.width=Math.max(0,Math.min(100,t.us/g*100))+"%";
     $("barThem").style.width=Math.max(0,Math.min(100,t.them/g*100))+"%";
 
-    // entry — в клетках только взятки; бонус отдельно, итог под клеткой
+    // entry — в клетках только взятки; бонус прибавляется к итогу команды
     $("inUs").value=S.round.us; $("inThem").value=S.round.them;
     const tu=(+S.round.us||0), tt=(+S.round.them||0);
-    $("badgeUs").textContent   = S.round.bu>0 ? ("бонус +"+S.round.bu+" → итог "+(tu+S.round.bu)) : "";
-    $("badgeThem").textContent = S.round.bt>0 ? ("бонус +"+S.round.bt+" → итог "+(tt+S.round.bt)) : "";
-    $("sumHint").textContent="взятки "+(tu+tt)+" / "+S.cfg.base;
+    $("badgeUs").textContent   = S.round.bu>0 ? ("→ запишется "+(tu+S.round.bu)+"  (взятки "+tu+" + бонус "+S.round.bu+")") : "";
+    $("badgeThem").textContent = S.round.bt>0 ? ("→ запишется "+(tt+S.round.bt)+"  (взятки "+tt+" + бонус "+S.round.bt+")") : "";
+    $("sumHint").textContent="сумма "+(tu+S.round.bu+tt+S.round.bt)+" / "+(S.cfg.base+S.round.bu+S.round.bt);
     $("btnSave").disabled = !(S.round.us!=="" || S.round.them!=="" || S.round.bu || S.round.bt);
 
     // log
