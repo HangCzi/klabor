@@ -110,7 +110,7 @@
 <body>
   <div class="topbar">
     <div>
-      <h1>БЕЛОТ</h1>
+      <h1>КЛАБОР</h1>
       <div class="goal">до <span id="goalTop">701</span> · база 162</div>
     </div>
     <div style="display:flex; gap:8px">
@@ -302,7 +302,7 @@
     $("badgeUs").textContent=fmtBadge(S.round.bonus);
     $("badgeThem").textContent="";
     const su=(+S.round.us||0), st=(+S.round.them||0);
-    $("sumHint").textContent="сумма "+(su+st)+" / "+(S.cfg.base+S.round.bonus);
+    $("sumHint").textContent="сумма "+(su+st)+" / "+(S.cfg.base+(S.round.bonus||0));
     $("btnSave").disabled = !(S.round.us!=="" || S.round.them!=="" || S.round.bonus);
 
     // log
@@ -442,9 +442,9 @@
     if(saved && saved.events){
       S = Object.assign(fresh(), saved);
       if(!S.cfg) S.cfg = fresh().cfg;
-      if(!S.round) resetRound();
-      render();
     }
+    resetRound();   // незаписанную раздачу не восстанавливаем — гарантирует чистый bonus
+    render();
     if(inTelegram){
       try{
         tg.ready(); tg.expand();
