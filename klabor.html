@@ -146,11 +146,11 @@
     <div class="lbl"><span>РАЗДАЧА</span><span id="sumHint">сумма 0 / 162</span></div>
     <div class="inrow">
       <div class="field us">
-        <label id="fUsLbl">Мы — взятки</label>
+        <label id="fUsLbl">Мы — очки</label>
         <input id="inUs" type="number" inputmode="numeric" min="0" placeholder="0">
       </div>
       <div class="field them">
-        <label id="fThemLbl">Они — взятки</label>
+        <label id="fThemLbl">Они — очки</label>
         <input id="inThem" type="number" inputmode="numeric" min="0" placeholder="0">
       </div>
     </div>
@@ -256,7 +256,7 @@
     names:{us:"Мы",them:"Они"},
     cfg:{goal:701, base:162, pen:100, thr:3},
     events:[],            // {t:'deal'|'beit'|'capot', us,them, team}
-    round:{us:"",them:"",bu:0,bt:0,edited:null},
+    round:{us:"",them:"",bu:0,bt:0,um:false,tm:false},
     winAck:false
   });
 
@@ -297,13 +297,13 @@
     $("barUs").style.width=Math.max(0,Math.min(100,t.us/g*100))+"%";
     $("barThem").style.width=Math.max(0,Math.min(100,t.them/g*100))+"%";
 
-    // entry — в клетках только взятки; бонус прибавляется к итогу команды
+    // entry — в клетки пишешь полные очки команды; вторая подсказывается (162−первая), но её можно перезаписать
     $("inUs").value=S.round.us; $("inThem").value=S.round.them;
     const tu=(+S.round.us||0), tt=(+S.round.them||0);
-    $("badgeUs").textContent   = S.round.bu>0 ? ("→ запишется "+(tu+S.round.bu)+"  (взятки "+tu+" + бонус "+S.round.bu+")") : "";
-    $("badgeThem").textContent = S.round.bt>0 ? ("→ запишется "+(tt+S.round.bt)+"  (взятки "+tt+" + бонус "+S.round.bt+")") : "";
-    $("sumHint").textContent="сумма "+(tu+S.round.bu+tt+S.round.bt)+" / "+(S.cfg.base+S.round.bu+S.round.bt);
-    $("btnSave").disabled = !(S.round.us!=="" || S.round.them!=="" || S.round.bu || S.round.bt);
+    $("badgeUs").textContent   = S.round.bu>0 ? ("в т.ч. бонус +"+S.round.bu) : "";
+    $("badgeThem").textContent = S.round.bt>0 ? ("в т.ч. бонус +"+S.round.bt) : "";
+    $("sumHint").textContent="сумма "+(tu+tt);
+    $("btnSave").disabled = !(S.round.us!=="" || S.round.them!=="");
 
     // log
     const list=$("logList");
@@ -348,11 +348,11 @@
     if(edited==="us"){ const v=+S.round.us||0; S.round.them=String(Math.max(0,base-v)); }
     else{ const v=+S.round.them||0; S.round.us=String(Math.max(0,base-v)); }
   }
-  function resetRound(){ S.round={us:"",them:"",bu:0,bt:0,edited:null}; }
+  function resetRound(){ S.round={us:"",them:"",bu:0,bt:0,um:false,tm:false}; }
 
   function commitDeal(){
-    const us=(+S.round.us||0)+S.round.bu;
-    const them=(+S.round.them||0)+S.round.bt;
+    const us=(+S.round.us||0);
+    const them=(+S.round.them||0);
     if(us===0 && them===0) return;
     S.events.push({t:"deal",us,them});
     resetRound(); render();
@@ -362,14 +362,24 @@
   function undo(){ if(S.events.length){ S.events.pop(); S.winAck=false; render(); } }
 
   // --- events ---
-  $("inUs").addEventListener("input",e=>{ S.round.us=e.target.value; S.round.edited="us"; if(e.target.value!=="") autofill("us"); render(); });
-  $("inThem").addEventListener("input",e=>{ S.round.them=e.target.value; S.round.edited="them"; if(e.target.value!=="") autofill("them"); render(); });
+  $("inUs").addEventListener("input",e=>{
+    S.round.us=e.target.value; S.round.um=true;
+    if(!S.round.tm) S.round.them = e.target.value==="" ? "" : String(Math.max(0,S.cfg.base-(+e.target.value||0)));
+    render();
+  });
+  $("inThem").addEventListener("input",e=>{
+    S.round.them=e.target.value; S.round.tm=true;
+    if(!S.round.um) S.round.us = e.target.value==="" ? "" : String(Math.max(0,S.cfg.base-(+e.target.value||0)));
+    render();
+  });
   document.querySelectorAll(".chip").forEach(c=>c.addEventListener("click",()=>{
     const t=c.dataset.combo, v=+c.dataset.v;
-    if(t==="us") S.round.bu+=v; else S.round.bt+=v; render();
+    if(t==="us"){ S.round.us=String((+S.round.us||0)+v); S.round.um=true; S.round.bu+=v; }
+    else { S.round.them=String((+S.round.them||0)+v); S.round.tm=true; S.round.bt+=v; }
+    render();
   }));
-  $("badgeUs").addEventListener("click",()=>{ S.round.bu=0; render(); });
-  $("badgeThem").addEventListener("click",()=>{ S.round.bt=0; render(); });
+  $("badgeUs").addEventListener("click",()=>{ S.round.us=String(Math.max(0,(+S.round.us||0)-S.round.bu)); S.round.bu=0; render(); });
+  $("badgeThem").addEventListener("click",()=>{ S.round.them=String(Math.max(0,(+S.round.them||0)-S.round.bt)); S.round.bt=0; render(); });
   document.querySelectorAll("[data-beit]").forEach(b=>b.addEventListener("click",()=>commitBeit(b.dataset.beit)));
   document.querySelectorAll("[data-capot]").forEach(b=>b.addEventListener("click",()=>commitCapot(b.dataset.capot)));
   $("btnSave").addEventListener("click",commitDeal);
